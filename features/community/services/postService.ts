@@ -1,49 +1,7 @@
+import { createClient } from "@/lib/supabase/browser";
 import { activityService } from "@/features/activity/services/activityService";
 import { ACTIVITY_TYPES } from "@/features/activity/types/activity";
-import type {
-  CommunitySidebarData,
-  Post,
-} from "../types/post";
-
-const mockPosts: Post[] = [
-  {
-    author: {
-      id: "author-1",
-      name: "Aiko Tanaka",
-    },
-    comments_count: 1,
-    content:
-      "Launching a new collaboration thread for local product showcases and demo sessions. If you're preparing something for spring, share the link and tell us what kind of feedback you need.",
-    created_at: "2h ago",
-    id: "post-1",
-    likes_count: 12,
-    link_url: "https://example.com/showcase",
-  },
-  {
-    author: {
-      id: "author-2",
-      name: "Ren Sato",
-    },
-    comments_count: 1,
-    content:
-      "Looking for feedback on a workshop format for first-time founders inside the community. Thinking about a 45 minute session with live teardown and peer Q&A.",
-    created_at: "5h ago",
-    id: "post-2",
-    likes_count: 8,
-  },
-  {
-    author: {
-      id: "author-3",
-      name: "Nina Park",
-    },
-    comments_count: 0,
-    content:
-      "We just published a new member onboarding checklist. It is written to reduce approval friction and help new members introduce themselves more confidently.",
-    created_at: "Today",
-    id: "post-3",
-    likes_count: 21,
-  },
-];
+import type { CommunitySidebarData, Post } from "../types/post";
 
 const mockSidebarData: CommunitySidebarData = {
   activeMembers: [
@@ -62,25 +20,117 @@ const mockSidebarData: CommunitySidebarData = {
 
 const listeners = new Set<() => void>();
 
+type PostRow = {
+  content: string;
+  created_at: string;
+  id: string;
+  likes_count?: number | null;
+  profile_id: string;
+  profiles:
+    | {
+        avatar_url: string | null;
+        display_name: string;
+      }
+    | {
+        avatar_url: string | null;
+        display_name: string;
+      }[]
+    | null;
+};
+
 function notifyListeners() {
   listeners.forEach((listener) => listener());
 }
 
+function getProfileRecord(
+  profile:
+    | {
+        avatar_url: string | null;
+        display_name: string;
+      }
+    | {
+        avatar_url: string | null;
+        display_name: string;
+      }[]
+    | null,
+) {
+  if (!profile) {
+    return null;
+  }
+
+  if (Array.isArray(profile)) {
+    return profile[0] ?? null;
+  }
+
+  return profile;
+}
+
+function mapPost(row: PostRow): Post {
+  const profile = getProfileRecord(row.profiles);
+
+  return {
+    author: {
+      avatar_url: profile?.avatar_url ?? null,
+      id: row.profile_id,
+      name: profile?.display_name ?? "Member",
+    },
+    comments_count: 0,
+    content: row.content,
+    created_at: row.created_at,
+    id: row.id,
+    likes_count: row.likes_count ?? 0,
+  };
+}
+
 export const postService = {
   async createPost(content: string) {
-    const post = {
-      author: {
-        id: "current-user",
-        name: "Current Member",
-      },
-      comments_count: 0,
-      content,
-      created_at: "Just now",
-      id: `mock-post-${Date.now()}`,
-      likes_count: 0,
-    } satisfies Post;
+    const supabase = createClient();
 
-    mockPosts.unshift(post);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, display_name, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+
+    if (!profile) {
+      throw new Error("Profile not found");
+    }
+
+    const { data, error } = await supabase
+      .from("posts")
+      .insert({
+        content,
+        profile_id: user.id,
+        type: "post",
+      })
+      .select("id, content, created_at, profile_id, profiles(display_name, avatar_url)")
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      throw new Error("No data returned from insert");
+    }
+
+    const post = mapPost({
+      ...data,
+      likes_count: 0,
+    } as PostRow);
+
     notifyListeners();
 
     await activityService.createActivity({
@@ -94,11 +144,28 @@ export const postService = {
       type: ACTIVITY_TYPES.post_created,
     });
 
-    return Promise.resolve(post);
+    return post;
   },
 
   async getFeed() {
-    return Promise.resolve([...mockPosts]);
+    const supabase = createClient();
+
+    const { data, error } = await supabase
+      .from("posts")
+      .select("id, content, created_at, profile_id, profiles(display_name, avatar_url)")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []).map((row) =>
+      mapPost({
+        ...(row as Omit<PostRow, "likes_count">),
+        likes_count: 0,
+      }),
+    );
   },
 
   async getSidebarData() {

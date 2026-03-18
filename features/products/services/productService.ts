@@ -2,10 +2,10 @@ import { activityService } from "@/features/activity/services/activityService";
 import { ACTIVITY_TYPES } from "@/features/activity/types/activity";
 
 export type ProductRecord = {
-  author_id: string;
-  author_name: string;
   created_at: string;
+  description: string;
   id: string;
+  profile_id: string;
   title: string;
 };
 
@@ -13,22 +13,22 @@ const mockProducts: ProductRecord[] = [];
 
 export const productService = {
   async createProduct(input: {
-    authorName?: string;
+    description?: string;
     title: string;
   }) {
     const product = {
-      author_id: "current-user",
-      author_name: input.authorName ?? "Current Member",
-      created_at: "Just now",
+      created_at: new Date().toISOString(),
+      description: input.description ?? "",
       id: `product-${Date.now()}`,
+      profile_id: "current-user",
       title: input.title,
     } satisfies ProductRecord;
 
     mockProducts.unshift(product);
 
     await activityService.createActivity({
-      actor_id: product.author_id,
-      actor_name: product.author_name,
+      actor_id: product.profile_id,
+      actor_name: "Current Member",
       entity_id: product.id,
       entity_type: "product",
       metadata: {
@@ -44,4 +44,3 @@ export const productService = {
     return Promise.resolve([...mockProducts]);
   },
 };
-

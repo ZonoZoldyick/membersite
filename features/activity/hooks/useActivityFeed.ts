@@ -27,6 +27,7 @@ export function useActivityFeed(): UseActivityFeedResult {
         }
 
         setActivities(result);
+        setError(null);
       } catch {
         if (!isMounted) {
           return;

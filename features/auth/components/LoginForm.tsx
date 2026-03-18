@@ -1,19 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { login, type AuthActionState } from "../actions";
-
-const initialState: AuthActionState = {
-  error: "",
-  success: "",
-};
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 export function LoginForm() {
-  const [state, formAction, pending] = useActionState(login, initialState);
+  const searchParams = useSearchParams();
+  const [pending, setPending] = useState(false);
+  const redirectedFrom = searchParams.get("redirectedFrom");
+  const destination =
+    redirectedFrom && redirectedFrom.startsWith("/")
+      ? redirectedFrom
+      : "/dashboard";
+  const error = searchParams.get("error");
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      action="/api/auth/login"
+      className="space-y-4"
+      method="post"
+      onSubmit={() => {
+        setPending(true);
+      }}
+    >
+      <input type="hidden" name="redirectTo" value={destination} />
       <label className="block">
         <span className="mb-2 block text-sm font-medium text-slate-700">
           Email
@@ -36,8 +46,8 @@ export function LoginForm() {
           className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-900"
         />
       </label>
-      {state.error ? (
-        <p className="text-sm text-rose-600">{state.error}</p>
+      {error ? (
+        <p className="text-sm text-rose-600">{decodeURIComponent(error)}</p>
       ) : null}
       <button
         type="submit"

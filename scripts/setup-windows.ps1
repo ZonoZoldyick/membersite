@@ -18,6 +18,16 @@ function Assert-CommandExists {
   }
 }
 
+function Assert-NodeVersion {
+  $nodeVersionText = (node --version).TrimStart("v")
+  $nodeVersion = [Version]$nodeVersionText
+  $minimumVersion = [Version]"18.18.0"
+
+  if ($nodeVersion -lt $minimumVersion) {
+    throw "Node.js $minimumVersion or newer is required. Current version: $nodeVersionText"
+  }
+}
+
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRoot = Resolve-Path (Join-Path $scriptDirectory "..")
 
@@ -26,6 +36,7 @@ Set-Location $projectRoot
 Write-Step "Checking required tools"
 Assert-CommandExists -CommandName "node"
 Assert-CommandExists -CommandName "npm"
+Assert-NodeVersion
 
 Write-Host "Node version: $(node --version)"
 Write-Host "npm version: $(npm --version)"

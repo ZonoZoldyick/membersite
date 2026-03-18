@@ -8,38 +8,6 @@ export type AuthActionState = {
   success: string;
 };
 
-async function getDefaultRoleId() {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("roles")
-    .select("id")
-    .eq("name", "member_normal")
-    .single();
-
-  if (error) {
-    throw new Error("Failed to load default role");
-  }
-
-  return data.id as number;
-}
-
-async function getDefaultMembershipTierId() {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("membership_tiers")
-    .select("id")
-    .eq("name", "normal")
-    .single();
-
-  if (error) {
-    throw new Error("Failed to load default membership tier");
-  }
-
-  return data.id as number;
-}
-
 export async function login(
   _prevState: AuthActionState,
   formData: FormData,
@@ -66,8 +34,6 @@ export async function signup(
   const displayName = String(formData.get("displayName") ?? "");
 
   const supabase = await createClient();
-  const roleId = await getDefaultRoleId();
-  const membershipTierId = await getDefaultMembershipTierId();
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -83,22 +49,11 @@ export async function signup(
     return { error: error.message, success: "" };
   }
 
-  if (data.user && data.session) {
-    const { error: profileError } = await supabase.from("profiles").upsert({
-      id: data.user.id,
-      email,
-      display_name: displayName,
-      role_id: roleId,
-      membership_tier_id: membershipTierId,
-      status: "pending",
-    });
-
-    if (profileError) {
-      return { error: profileError.message, success: "" };
-    }
+  if (!data.user) {
+    return { error: "Failed to create account.", success: "" };
   }
 
-  redirect("/dashboard");
+  redirect("/pending?status=pending");
 }
 
 export async function logout() {

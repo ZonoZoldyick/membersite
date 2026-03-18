@@ -49,6 +49,14 @@ export function ActivityFeed({ compact = false }: ActivityFeedProps) {
     );
   }
 
+  if (activities.length === 0) {
+    return (
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-sm text-[var(--muted)]">
+        No activity yet
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {activities.map((activity) => (

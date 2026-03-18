@@ -19,8 +19,12 @@ export default async function MemberLayout({ children }: MemberLayoutProps) {
 
   const profile = await getProfile(currentUser.id);
 
-  if (!profile || profile.status !== "active") {
-    redirect("/pending");
+  if (!profile) {
+    redirect("/pending?status=missing_profile");
+  }
+
+  if (profile.status !== "active") {
+    redirect(`/pending?status=${profile.status}`);
   }
 
   const supabase = await createClient();

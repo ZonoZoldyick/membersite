@@ -10,7 +10,17 @@ import { useEvents } from "@/features/events/hooks/useEvents";
 export default function EventsPage() {
   const [location, setLocation] = useState("");
   const [title, setTitle] = useState("");
-  const { createEvent, events, isCreating, joinEvent, joiningId } = useEvents();
+  const {
+    createError,
+    createEvent,
+    events,
+    isCreating,
+    isLoading,
+    joinError,
+    joinEvent,
+    joiningId,
+    loadError,
+  } = useEvents();
 
   async function handleCreateEvent() {
     const event = await createEvent(title, location || "TBD");
@@ -31,7 +41,7 @@ export default function EventsPage() {
       />
       <Card
         title="Create Event"
-        description="Publish a new event to the member calendar using the mocked service layer."
+        description="Publish a new event to the member calendar."
         className="mb-6"
       >
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
@@ -52,7 +62,14 @@ export default function EventsPage() {
             {isCreating ? "Creating..." : "Create Event"}
           </Button>
         </div>
+        {createError ? <p className="mt-3 text-sm text-rose-600">{createError}</p> : null}
       </Card>
+      {loadError ? <p className="mb-4 text-sm text-rose-600">{loadError}</p> : null}
+      {joinError ? <p className="mb-4 text-sm text-rose-600">{joinError}</p> : null}
+      {isLoading ? <p className="text-sm text-[var(--muted)]">Loading events...</p> : null}
+      {!isLoading && events.length === 0 ? (
+        <p className="text-sm text-[var(--muted)]">No upcoming events yet</p>
+      ) : null}
       <div className="grid gap-5">
         {events.map((event) => (
           <Card key={event.id}>
@@ -63,7 +80,7 @@ export default function EventsPage() {
                     Date
                   </p>
                   <p className="mt-1 text-lg font-semibold text-[var(--foreground)]">
-                    {event.created_at}
+                    {new Date(event.event_date).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
@@ -73,6 +90,9 @@ export default function EventsPage() {
                   <p className="mt-2 text-sm text-[var(--muted)]">{event.location}</p>
                   <p className="mt-1 text-sm text-[var(--muted)]">
                     {event.joinedCount} joined
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    {event.description}
                   </p>
                 </div>
               </div>

@@ -1,20 +1,28 @@
 import { PageIntro } from "@/components/layout/PageIntro";
 import { Card } from "@/components/ui/Card";
 import { ActivityFeed } from "@/features/activity/components/ActivityFeed";
+import { createClient } from "@/lib/supabase/server";
 
-const featuredProducts = [
-  "Launch Playbook Kit",
-  "Member CRM Template",
-  "Partnership Outreach Pack",
-];
+export default async function DashboardPage() {
+  const supabase = await createClient();
 
-const upcomingEvents = [
-  "Community Demo Day",
-  "Founder Growth Circle",
-  "Premium Learning Sprint",
-];
+  const [{ data: products, error: productsError }, { data: events, error: eventsError }] =
+    await Promise.all([
+      supabase
+        .from("products")
+        .select("id, title, description, created_at")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabase
+        .from("events")
+        .select("id, title, description, event_date, location")
+        .is("deleted_at", null)
+        .gte("event_date", new Date().toISOString())
+        .order("event_date", { ascending: true })
+        .limit(5),
+    ]);
 
-export default function DashboardPage() {
   return (
     <div>
       <PageIntro
@@ -33,31 +41,60 @@ export default function DashboardPage() {
             title="Featured Products"
             description="Highlighted member offerings and currently active showcases."
           >
-            <div className="space-y-3">
-              {featuredProducts.map((product) => (
-                <div
-                  key={product}
-                  className="rounded-2xl bg-[var(--secondary)] px-4 py-4 text-sm font-medium text-[var(--foreground)]"
-                >
-                  {product}
-                </div>
-              ))}
-            </div>
+            {productsError ? (
+              <p className="text-sm text-rose-600">{productsError.message}</p>
+            ) : products && products.length > 0 ? (
+              <div className="space-y-3">
+                {products.map((product) => (
+                  <div
+                    key={product.id}
+                    className="rounded-2xl bg-[var(--secondary)] px-4 py-4"
+                  >
+                    <p className="text-sm font-semibold text-[var(--foreground)]">
+                      {product.title}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                      {product.description}
+                    </p>
+                    <p className="mt-2 text-xs text-[var(--muted)]">
+                      {new Date(product.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--muted)]">No products yet</p>
+            )}
           </Card>
           <Card
             title="Upcoming Events"
             description="The next sessions and gatherings members can join."
           >
-            <div className="space-y-3">
-              {upcomingEvents.map((event) => (
-                <div
-                  key={event}
-                  className="rounded-2xl bg-[var(--secondary)] px-4 py-4 text-sm font-medium text-[var(--foreground)]"
-                >
-                  {event}
-                </div>
-              ))}
-            </div>
+            {eventsError ? (
+              <p className="text-sm text-rose-600">{eventsError.message}</p>
+            ) : events && events.length > 0 ? (
+              <div className="space-y-3">
+                {events.map((event) => (
+                  <div
+                    key={event.id}
+                    className="rounded-2xl bg-[var(--secondary)] px-4 py-4"
+                  >
+                    <p className="text-sm font-semibold text-[var(--foreground)]">
+                      {event.title}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                      {event.description}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
+                      <span>{new Date(event.event_date).toLocaleString()}</span>
+                      <span>{event.location ?? "Location TBD"}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--muted)]">No upcoming events yet</p>
+            )}
           </Card>
         </div>
       </div>

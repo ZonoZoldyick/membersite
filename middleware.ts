@@ -113,7 +113,7 @@ export async function middleware(request: NextRequest) {
   if (!profile && isProtected) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/pending";
-    redirectUrl.search = "";
+    redirectUrl.searchParams.set("status", "missing_profile");
 
     return NextResponse.redirect(redirectUrl);
   }
@@ -125,7 +125,7 @@ export async function middleware(request: NextRequest) {
   if (profile.status !== "active" && isProtected) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/pending";
-    redirectUrl.search = "";
+    redirectUrl.searchParams.set("status", profile.status);
 
     return NextResponse.redirect(redirectUrl);
   }
@@ -136,7 +136,7 @@ export async function middleware(request: NextRequest) {
   if (!role || !membershipTier) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/pending";
-    redirectUrl.search = "";
+    redirectUrl.searchParams.set("status", "missing_rbac");
 
     return NextResponse.redirect(redirectUrl);
   }

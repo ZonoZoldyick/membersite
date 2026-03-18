@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isAdmin } from "@/lib/rbac/guards";
+import { isAdmin, isLeader } from "@/lib/rbac/guards";
 
 type MemberSidebarProps = {
   role: string;
@@ -21,6 +21,7 @@ const navigationItems = [
 export function MemberSidebar({ role }: MemberSidebarProps) {
   const currentPath = usePathname();
   const showAdmin = isAdmin(role);
+  const showApprovals = isLeader(role);
 
   return (
     <aside className="sticky top-0 hidden h-screen w-[280px] shrink-0 border-r border-[var(--border)] bg-[rgba(251,252,248,0.92)] px-5 py-6 backdrop-blur md:block">
@@ -82,6 +83,24 @@ export function MemberSidebar({ role }: MemberSidebarProps) {
                     AD
                   </span>
                   <span>Admin</span>
+                </Link>
+              </li>
+            ) : null}
+            {showApprovals ? (
+              <li>
+                <Link
+                  href="/members/approvals"
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                    currentPath === "/members/approvals" ||
+                    currentPath.startsWith("/members/approvals/")
+                      ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg"
+                      : "text-[var(--muted)] hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--secondary)] text-xs font-semibold text-[var(--foreground)]">
+                    AP
+                  </span>
+                  <span>Approvals</span>
                 </Link>
               </li>
             ) : null}

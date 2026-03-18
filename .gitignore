@@ -3,6 +3,9 @@ node_modules/
 out/
 dist/
 coverage/
+playwright/.cache/
+tests/reports/
+test-results/
 .env
 .env.local
 .env*.local

@@ -1,59 +1,85 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { eventService, type EventRecord } from "../services/eventService";
 
-type EventItem = EventRecord & {
-  joinedCount: number;
-  location: string;
+type UseEventsResult = {
+  createError: string | null;
+  createEvent: (title: string, location: string) => Promise<EventRecord | null>;
+  events: EventRecord[];
+  isCreating: boolean;
+  isLoading: boolean;
+  joinError: string | null;
+  joinEvent: (eventId: string, eventTitle: string) => Promise<boolean>;
+  joiningId: string | null;
+  loadError: string | null;
 };
 
-const initialEvents: EventItem[] = [
-  {
-    created_at: "Apr 04",
-    creator_id: "seed-1",
-    creator_name: "Community Team",
-    id: "seed-event-1",
-    joinedCount: 24,
-    location: "Tokyo + Online",
-    title: "Founder Networking Session",
-  },
-  {
-    created_at: "Apr 12",
-    creator_id: "seed-2",
-    creator_name: "Community Team",
-    id: "seed-event-2",
-    joinedCount: 12,
-    location: "Osaka",
-    title: "Community Product Demo Day",
-  },
-  {
-    created_at: "Apr 20",
-    creator_id: "seed-3",
-    creator_name: "Community Team",
-    id: "seed-event-3",
-    joinedCount: 39,
-    location: "Online",
-    title: "Premium Learning Sprint",
-  },
-];
-
-export function useEvents() {
-  const [events, setEvents] = useState<EventItem[]>(initialEvents);
+export function useEvents(): UseEventsResult {
+  const [events, setEvents] = useState<EventRecord[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadEvents() {
+      try {
+        const result = await eventService.getEvents();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setEvents(result);
+        setLoadError(null);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setLoadError(
+          error instanceof Error ? error.message : "Failed to load events.",
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadEvents();
+    const unsubscribe = eventService.subscribe(() => {
+      void loadEvents();
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   async function createEvent(title: string, location: string) {
     setIsCreating(true);
+    setCreateError(null);
+
     try {
-      const event = await eventService.createEvent({ title });
-      const nextEvent: EventItem = {
-        ...event,
-        joinedCount: 0,
-        location,
-      };
-      setEvents((current) => [nextEvent, ...current]);
-      return nextEvent;
+      const event = await eventService.createEvent({
+        description: `${title} at ${location || "TBD"}`,
+        location: location || "TBD",
+        title,
+      });
+
+      return event;
+    } catch (error) {
+      setCreateError(
+        error instanceof Error ? error.message : "Failed to create event.",
+      );
+      return null;
     } finally {
       setIsCreating(false);
     }
@@ -61,19 +87,30 @@ export function useEvents() {
 
   async function joinEvent(eventId: string, eventTitle: string) {
     setJoiningId(eventId);
+    setJoinError(null);
+
     try {
       await eventService.joinEvent({ eventId, eventTitle });
-      setEvents((current) =>
-        current.map((event) =>
-          event.id === eventId
-            ? { ...event, joinedCount: event.joinedCount + 1 }
-            : event,
-        ),
+      return true;
+    } catch (error) {
+      setJoinError(
+        error instanceof Error ? error.message : "Failed to join event.",
       );
+      return false;
     } finally {
       setJoiningId(null);
     }
   }
 
-  return { createEvent, events, isCreating, joinEvent, joiningId };
+  return {
+    createError,
+    createEvent,
+    events,
+    isCreating,
+    isLoading,
+    joinError,
+    joinEvent,
+    joiningId,
+    loadError,
+  };
 }

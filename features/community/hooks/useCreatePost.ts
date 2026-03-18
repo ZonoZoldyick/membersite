@@ -6,6 +6,7 @@ import type { Post } from "../types/post";
 
 type UseCreatePostResult = {
   createPost: (content: string) => Promise<Post | null>;
+  createError: string | null;
   error: string | null;
   loading: boolean;
   success: boolean;
@@ -35,6 +36,7 @@ export function useCreatePost(): UseCreatePostResult {
 
   return {
     createPost,
+    createError: error,
     error,
     loading,
     success,

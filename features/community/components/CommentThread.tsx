@@ -58,7 +58,7 @@ export function CommentThread({
   postId,
 }: CommentThreadProps) {
   const [content, setContent] = useState("");
-  const { comments, createComment, error } = useComments(postId);
+  const { comments, createComment, error, isCreating, loading } = useComments(postId);
 
   async function handleCommentSubmit() {
     const comment = await createComment(content, currentUserName);
@@ -82,15 +82,21 @@ export function CommentThread({
             onChange={(event) => setContent(event.target.value)}
           />
           <Button
-            disabled={!content.trim()}
+            disabled={!content.trim() || isCreating}
             size="sm"
             onClick={() => void handleCommentSubmit()}
           >
-            Comment
+            {isCreating ? "Posting..." : "Comment"}
           </Button>
         </div>
         {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
       </div>
+      {loading ? (
+        <p className="text-sm text-[var(--muted)]">Loading comments...</p>
+      ) : null}
+      {!loading && comments.length === 0 ? (
+        <p className="text-sm text-[var(--muted)]">No comments yet</p>
+      ) : null}
       {comments.map((comment) => (
         <CommentNode key={comment.id} comment={comment} />
       ))}
