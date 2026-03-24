@@ -2,6 +2,48 @@
 
 membersite implementation tasks ordered by execution sequence and priority.
 
+## Current Remaining Work
+
+### A. Immediate Stabilization
+
+- Priority: High
+- Goal: Close the remaining verification gaps before moving further into feature expansion.
+- Main work:
+  - Stabilize the admin approvals E2E flow
+  - Re-run `type-check`, `build`, and full auth E2E after each auth or schema change
+  - Commit the pending auth/test/schema-alignment fixes once green
+- Done when:
+  - Auth E2E passes end-to-end
+  - Type-check and build both pass
+  - The repo is ready for the next feature phase on a clean baseline
+
+### B. Manual Approval Flow Verification
+
+- Priority: High
+- Goal: Finish the real browser confirmation of the approval workflow.
+- Main work:
+  - Log in as admin or leader
+  - Open `/members/approvals`
+  - Approve a pending user and verify they become active
+  - Confirm the approved user can reach the member area
+- Done when:
+  - Approval works in the real UI, not only in automated coverage
+  - Pending users become active as expected
+
+### C. Automated Community and Sharing Verification
+
+- Priority: Medium
+- Goal: Expand E2E coverage from auth to the main member actions.
+- Main work:
+  - Add E2E coverage for post creation
+  - Add E2E coverage for comment creation
+  - Add E2E coverage for product creation
+  - Add E2E coverage for event creation and event join
+  - Verify activity feed reflection where applicable
+- Done when:
+  - Core member creation flows are covered by Playwright
+  - Reports can be reviewed after each run
+
 ## 1. Posts Read
 
 - Priority: High

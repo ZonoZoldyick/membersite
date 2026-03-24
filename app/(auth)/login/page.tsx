@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AuthCard } from "@/features/auth/components/AuthCard";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 
@@ -8,9 +9,10 @@ export default function LoginPage() {
         title="Login"
         description="Sign in with your email and password to access the member community."
       >
-        <LoginForm />
+        <Suspense fallback={null}>
+          <LoginForm />
+        </Suspense>
       </AuthCard>
     </main>
   );
 }
-

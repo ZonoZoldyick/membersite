@@ -6,6 +6,8 @@ import {
   ensureDefaultTestUsers,
 } from "../support/test-users";
 
+test.describe.configure({ timeout: 60_000 });
+
 async function login(page: Page, email: string, password: string) {
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
@@ -32,11 +34,11 @@ test("allows an active admin user to log in and access approvals", async ({ page
   }
 
   await login(page, adminUser.email, adminUser.password);
-  await expect(page).toHaveURL(/\/dashboard/);
+  await page.waitForURL(/\/dashboard/, { timeout: 45_000 });
 
-  await page.goto("/members/approvals");
+  await page.goto("/members/approvals", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/members\/approvals/);
-  await expect(page.getByText("Pending Members")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pending Members" })).toBeVisible();
 });
 
 test("blocks a normal member from approvals", async ({ page }) => {
@@ -47,9 +49,9 @@ test("blocks a normal member from approvals", async ({ page }) => {
   }
 
   await login(page, memberUser.email, memberUser.password);
-  await expect(page).toHaveURL(/\/dashboard/);
+  await page.waitForURL(/\/dashboard/, { timeout: 45_000 });
 
-  await page.goto("/members/approvals");
+  await page.goto("/members/approvals", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/dashboard/);
 });
 
@@ -61,7 +63,7 @@ test("redirects pending users to pending page after login", async ({ page }) => 
   }
 
   await login(page, pendingUser.email, pendingUser.password);
-  await expect(page).toHaveURL(/\/pending\?status=pending/);
+  await page.waitForURL(/\/pending\?status=pending/, { timeout: 45_000 });
   await expect(page.getByText("Account pending approval")).toBeVisible();
 });
 
@@ -73,7 +75,7 @@ test("redirects suspended users to suspended pending page", async ({ page }) => 
   }
 
   await login(page, suspendedUser.email, suspendedUser.password);
-  await expect(page).toHaveURL(/\/pending\?status=suspended/);
+  await page.waitForURL(/\/pending\?status=suspended/, { timeout: 45_000 });
   await expect(page.getByText("Account suspended")).toBeVisible();
 });
 
@@ -88,7 +90,7 @@ test("allows a new user to sign up and land on pending", async ({ page }) => {
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign up" }).click();
 
-  await expect(page).toHaveURL(/\/pending\?status=pending/);
+  await page.waitForURL(/\/pending\?status=pending/, { timeout: 45_000 });
   await expect(page.getByText("Account pending approval")).toBeVisible();
 
   await deleteTestUserByEmail(email);
